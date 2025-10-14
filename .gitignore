@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build & Output
+dist/
+build/
+.output/
+
+# Docker
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Tests
+coverage/
+.nyc_output
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
