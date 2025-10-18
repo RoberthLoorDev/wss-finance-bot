@@ -5,15 +5,18 @@
      "main": "index.js",
      "scripts": {
           "test": "echo \"Error: no test specified\" && exit 1",
-          "dev": "tsx watch src/index.ts"
+          "dev": "NODE_ENV=development tsx watch src/index.ts",
+          "start": "NODE_ENV=production tsx src/index.ts"
      },
      "keywords": [],
      "author": "",
      "license": "ISC",
      "packageManager": "pnpm@10.18.2",
      "dependencies": {
+          "@prisma/client": "6.17.1",
           "dotenv-safe": "^9.1.0",
-          "express": "^5.1.0"
+          "express": "^5.1.0",
+          "prisma": "6.17.1"
      },
      "devDependencies": {
           "@types/dotenv-safe": "^9.1.0",
