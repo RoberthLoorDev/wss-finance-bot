@@ -1,5 +1,6 @@
 import express, { Application } from "express";
 import { PingRoute } from "../routes/ping.route";
+import { ENV } from "../config/env";
 
 export class Server {
      private app: Application;
@@ -27,6 +28,7 @@ export class Server {
      public listen(): void {
           this.app.listen(this.port, () => {
                console.log(`Server is running on port ${this.port}`);
+               console.log(`Environment: ${ENV.NODE_ENV}`);
           });
      }
 }
