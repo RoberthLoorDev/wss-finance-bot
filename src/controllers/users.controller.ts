@@ -1,10 +1,10 @@
+import { Request, Response } from "express";
+import bcrypt from "bcryptjs";
+import { UserRole } from "@prisma/client";
 import { CreateUserInput, ListUsersQuerySchema, UpdateUserInput } from "@/schemas/user.schema";
 import { UserService } from "@/services/users.service";
-import { UserRole } from "@prisma/client";
-import bcrypt from "bcryptjs";
-import { Request, Response } from "express";
+import { successResponse, errorResponse } from "@/helpers/response.helper";
 
-// helper
 const toBigInt = (n: string) => BigInt(n);
 
 export class UsersController {
@@ -13,9 +13,7 @@ export class UsersController {
      // POST /api/users
      async create(req: Request<{}, {}, CreateUserInput>, res: Response) {
           try {
-               // req.body ya viene validado por middleware
                const body = req.body;
-
                const hashed = body.password ? await bcrypt.hash(body.password, 10) : null;
 
                const user = await this.service.create({
@@ -28,16 +26,13 @@ export class UsersController {
                     role: body.role ?? UserRole.USER,
                });
 
-               return res.status(201).json({ message: "Usuario creado exitosamente", data: user });
+               return successResponse(res, "Usuario creado exitosamente", user, 201);
           } catch (error: any) {
                if (error?.code === "P2002") {
-                    return res.status(409).json({
-                         message: "Conflicto de unicidad (correo/username/teléfono ya existe)",
-                         meta: error.meta,
-                    });
+                    return errorResponse(res, "Conflicto de unicidad (correo/username/teléfono ya existe)", 409, error.meta);
                }
                console.error("❌ create user:", error);
-               return res.status(500).json({ message: "Error interno del servidor" });
+               return errorResponse(res, "Error interno del servidor", 500);
           }
      }
 
@@ -45,10 +40,20 @@ export class UsersController {
      async list(req: Request, res: Response) {
           try {
                const { page, pageSize, search, role, is_active } = ListUsersQuerySchema.parse(req.query);
-               const result = await this.service.findAll({ page, pageSize, search, role, is_active });
-               return res.status(200).json(result);
-          } catch (error: any) {
-               return res.status(400).json({ message: "Query inválida" });
+
+               const result = await this.service.findAll({
+                    page,
+                    pageSize,
+                    search,
+                    role,
+                    is_active,
+               });
+
+               // ✅ aquí es donde te fallaba: envolvemos el resultado
+               return successResponse(res, "Usuarios obtenidos correctamente", result);
+          } catch (error) {
+               console.error("❌ list users:", error);
+               return errorResponse(res, "Query inválida o error al listar usuarios", 400);
           }
      }
 
@@ -57,10 +62,11 @@ export class UsersController {
           try {
                const id = toBigInt(req.params.id);
                const user = await this.service.findById(id);
-               if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
-               return res.status(200).json(user);
+               if (!user) return errorResponse(res, "Usuario no encontrado", 404);
+
+               return successResponse(res, "Usuario obtenido correctamente", user);
           } catch {
-               return res.status(400).json({ message: "ID inválido" });
+               return errorResponse(res, "ID inválido", 400);
           }
      }
 
@@ -68,11 +74,12 @@ export class UsersController {
      async getByPhone(req: Request<{ phone: string }>, res: Response) {
           try {
                const user = await this.service.findByPhone(req.params.phone);
-               if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
-               return res.status(200).json(user);
+               if (!user) return errorResponse(res, "Usuario no encontrado", 404);
+
+               return successResponse(res, "Usuario obtenido correctamente", user);
           } catch (error) {
                console.error("❌ getByPhone:", error);
-               return res.status(500).json({ message: "Error al buscar usuario" });
+               return errorResponse(res, "Error al buscar usuario", 500);
           }
      }
 
@@ -81,18 +88,20 @@ export class UsersController {
           try {
                const id = toBigInt(req.params.id);
                const body = req.body;
-
                const data: any = { ...body };
-               if (body.password) data.password = await bcrypt.hash(body.password, 10);
+
+               if (body.password) {
+                    data.password = await bcrypt.hash(body.password, 10);
+               }
 
                const user = await this.service.update(id, data);
-               return res.status(200).json({ message: "Usuario actualizado correctamente", data: user });
+               return successResponse(res, "Usuario actualizado correctamente", user);
           } catch (error: any) {
                if (error?.code === "P2002") {
-                    return res.status(409).json({ message: "Conflicto de unicidad", meta: error.meta });
+                    return errorResponse(res, "Conflicto de unicidad", 409, error.meta);
                }
                console.error("❌ update user:", error);
-               return res.status(400).json({ message: "Error al actualizar usuario" });
+               return errorResponse(res, "Error al actualizar usuario", 400);
           }
      }
 
@@ -101,10 +110,10 @@ export class UsersController {
           try {
                const id = toBigInt(req.params.id);
                const user = await this.service.softDelete(id);
-               return res.status(200).json({ message: "Usuario desactivado correctamente", data: user });
+               return successResponse(res, "Usuario desactivado correctamente", user);
           } catch (error) {
                console.error("❌ remove user:", error);
-               return res.status(400).json({ message: "Error al desactivar usuario" });
+               return errorResponse(res, "Error al desactivar usuario", 400);
           }
      }
 }
