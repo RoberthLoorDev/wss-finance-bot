@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,9 +8,68 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           BigInt    @id @default(autoincrement())
+  phone_number String    @unique
+  name         String?
+  age          Int?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime?
+  deleted_at   DateTime?
+
+  categories    Category[]
+  transactions  Transaction[]
+  notifications Notification[]
+}
+
+model Type {
+  id         BigInt    @id @default(autoincrement())
+  name       String
+  created_at DateTime  @default(now())
+  updated_at DateTime?
+  deleted_at DateTime?
+
+  categories Category[]
+}
+
+model Category {
+  id             BigInt    @id @default(autoincrement())
+  user_id        BigInt?
+  name           String
+  type_id        BigInt?
+  spending_limit Decimal?
+  created_at     DateTime  @default(now())
+  updated_at     DateTime?
+  deleted_at     DateTime?
+
+  user         User?         @relation(fields: [user_id], references: [id])
+  type         Type?         @relation(fields: [type_id], references: [id])
+  transactions Transaction[]
+}
+
+model Transaction {
+  id          BigInt    @id @default(autoincrement())
+  user_id     BigInt?
+  category_id BigInt?
+  amount      Decimal
+  description String?
+  date        DateTime  @default(now())
+  created_at  DateTime  @default(now())
+  updated_at  DateTime?
+  deleted_at  DateTime?
+
+  user     User?     @relation(fields: [user_id], references: [id])
+  category Category? @relation(fields: [category_id], references: [id])
+}
+
+model Notification {
+  id          BigInt    @id @default(autoincrement())
+  user_id     BigInt?
+  title       String
+  description String?
+  external_id String?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime?
+  deleted_at  DateTime?
+
+  user User? @relation(fields: [user_id], references: [id])
 }
