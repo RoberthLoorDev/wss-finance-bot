@@ -15,12 +15,15 @@
      "packageManager": "pnpm@10.18.2",
      "dependencies": {
           "@prisma/client": "6.17.1",
+          "bcryptjs": "^3.0.2",
           "dotenv-safe": "^9.1.0",
           "express": "^5.1.0",
           "module-alias": "^2.2.3",
-          "prisma": "6.17.1"
+          "prisma": "6.17.1",
+          "zod": "^4.1.12"
      },
      "devDependencies": {
+          "@types/bcryptjs": "^3.0.0",
           "@types/dotenv-safe": "^9.1.0",
           "@types/express": "^5.0.3",
           "@types/module-alias": "^2.0.4",
