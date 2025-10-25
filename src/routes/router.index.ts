@@ -6,6 +6,8 @@ import { TypesRoute } from "./types.route";
 import { CategoriesRoute } from "./categories.route";
 import { NotificationsRoute } from "./notifications.route";
 import { TelegramRoute } from "./telegram.route";
+import { ConversationsRoute } from "./conversation.route";
+import { MessagesRoute } from "./message.route";
 
 export const registerRoutes = (): Router => {
      const router = Router();
@@ -17,6 +19,8 @@ export const registerRoutes = (): Router => {
      router.use("/categories", new CategoriesRoute().router);
      router.use("/notifications", new NotificationsRoute().router);
      router.use("/telegram", new TelegramRoute().router);
+     router.use("/conversations", new ConversationsRoute().router);
+     router.use("/messages", new MessagesRoute().router);
 
      return router;
 };
