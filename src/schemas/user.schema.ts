@@ -12,7 +12,9 @@ export const PhoneParamSchema = z.object({
 
 // body: create
 export const CreateUserSchema = z.object({
-     phone_number: z.string().min(5, "El número de teléfono es obligatorio"),
+     phone_number: z.string().min(5, "El número de teléfono es obligatorio").optional(),
+     // telegram_user_id se acepta como string de dígitos (se convertirá a BigInt en el controller)
+     telegram_user_id: z.string().regex(/^\d+$/, "telegram_user_id inválido").optional(),
      email: z.string().email("Correo inválido").optional(),
      password: z.string().min(6, "Mínimo 6 caracteres").optional(),
      username: z.string().min(3).optional(),
@@ -24,6 +26,7 @@ export const CreateUserSchema = z.object({
 // body: update
 export const UpdateUserSchema = z.object({
      phone_number: z.string().min(5).optional(),
+     telegram_user_id: z.string().regex(/^\d+$/, "telegram_user_id inválido").optional(),
      email: z.string().email().optional(),
      password: z.string().min(6).optional(),
      username: z.string().min(3).optional(),

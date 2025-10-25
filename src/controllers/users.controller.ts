@@ -16,20 +16,28 @@ export class UsersController {
                const body = req.body;
                const hashed = body.password ? await bcrypt.hash(body.password, 10) : null;
 
-               const user = await this.service.create({
-                    phone_number: body.phone_number,
+               const createData: any = {
+                    phone_number: body.phone_number ?? null,
+                    telegram_user_id: body.telegram_user_id ? BigInt(body.telegram_user_id) : null,
                     email: body.email ?? null,
                     password: hashed,
                     username: body.username ?? null,
                     name: body.name ?? null,
                     age: body.age ?? null,
                     role: body.role ?? UserRole.USER,
-               });
+               };
+
+               const user = await this.service.create(createData);
 
                return successResponse(res, "Usuario creado exitosamente", user, 201);
           } catch (error: any) {
                if (error?.code === "P2002") {
-                    return errorResponse(res, "Conflicto de unicidad (correo/username/teléfono ya existe)", 409, error.meta);
+                    return errorResponse(
+                         res,
+                         "Conflicto de unicidad (correo/username/teléfono/telegram ya existe)",
+                         409,
+                         error.meta
+                    );
                }
                console.error("❌ create user:", error);
                return errorResponse(res, "Error interno del servidor", 500);
@@ -92,6 +100,11 @@ export class UsersController {
 
                if (body.password) {
                     data.password = await bcrypt.hash(body.password, 10);
+               }
+
+               // convertir telegram_user_id si viene como string de dígitos
+               if (body.telegram_user_id !== undefined) {
+                    data.telegram_user_id = body.telegram_user_id === null ? null : BigInt(body.telegram_user_id as any);
                }
 
                const user = await this.service.update(id, data);
