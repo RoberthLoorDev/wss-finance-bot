@@ -15,6 +15,11 @@ const {
      POSTGRES_PORT = "5433",
      DB_HOST = "localhost",
      NODE_ENV,
+
+     // Telegram
+     TELEGRAM_API_KEY,
+     TELEGRAM_API,
+     NGROK_URL,
 } = process.env;
 
 export const ENV = {
@@ -27,4 +32,8 @@ export const ENV = {
      DB_HOST,
      DATABASE_URL: DATABASE_URL as string,
      NODE_ENV: NODE_ENV || "development",
+     // Telegram
+     TELEGRAM_API_KEY: TELEGRAM_API_KEY as string,
+     TELEGRAM_API: TELEGRAM_API as string,
+     NGROK_URL: NGROK_URL as string,
 };
