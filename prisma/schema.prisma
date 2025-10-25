@@ -77,6 +77,7 @@ model Notification {
   title       String
   description String?
   external_id String?
+  is_read     Boolean   @default(false)
   created_at  DateTime  @default(now())
   updated_at  DateTime?
   deleted_at  DateTime?
