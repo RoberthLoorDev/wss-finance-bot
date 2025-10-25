@@ -13,8 +13,10 @@ enum UserRole {
 }
 
 model User {
-  id           BigInt    @id @default(autoincrement())
-  phone_number String    @unique
+  id               BigInt  @id @default(autoincrement())
+  telegram_user_id BigInt? @unique
+
+  phone_number String?   @unique
   email        String?   @unique
   password     String?
   username     String?   @unique
@@ -29,6 +31,7 @@ model User {
   categories    Category[]
   transactions  Transaction[]
   notifications Notification[]
+  Conversation  Conversation[]
 }
 
 model Type {
@@ -83,4 +86,27 @@ model Notification {
   deleted_at  DateTime?
 
   user User? @relation(fields: [user_id], references: [id])
+}
+
+model Conversation {
+  id         BigInt    @id @default(autoincrement())
+  user_id    BigInt
+  title      String?
+  is_active  Boolean   @default(true)
+  started_at DateTime  @default(now())
+  ended_at   DateTime?
+  created_at DateTime  @default(now())
+
+  user     User      @relation(fields: [user_id], references: [id])
+  messages Message[]
+}
+
+model Message {
+  id              BigInt   @id @default(autoincrement())
+  conversation_id BigInt
+  sender          String
+  text            String
+  created_at      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversation_id], references: [id])
 }
