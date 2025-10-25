@@ -32,6 +32,9 @@ services:
                POSTGRES_DB: ${POSTGRES_DB}
                POSTGRES_PORT: ${POSTGRES_PORT:-5432}
                DB_HOST: db
+               TELEGRAM_API_KEY: ${TELEGRAM_API_KEY}
+               TELEGRAM_API: ${TELEGRAM_API}
+               NGROK_URL: ${NGROK_URL}
 
           command: >
                sh -c "
