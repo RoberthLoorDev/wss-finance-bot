@@ -7,7 +7,6 @@ dotenvSafe.config({
 
 const {
      PORT = "3000",
-     GEMINI_API_KEY,
      DATABASE_URL,
      POSTGRES_USER,
      POSTGRES_PASSWORD,
@@ -20,11 +19,14 @@ const {
      TELEGRAM_API_KEY,
      TELEGRAM_API,
      NGROK_URL,
+
+     // Gemini
+     GEMINI_API_KEY,
+     GEMINI_MODEL,
 } = process.env;
 
 export const ENV = {
      PORT: parseInt(PORT, 10),
-     GEMINI_API_KEY: GEMINI_API_KEY as string,
      POSTGRES_USER: POSTGRES_USER as string,
      POSTGRES_PASSWORD: POSTGRES_PASSWORD as string,
      POSTGRES_DB: POSTGRES_DB as string,
@@ -36,4 +38,7 @@ export const ENV = {
      TELEGRAM_API_KEY: TELEGRAM_API_KEY as string,
      TELEGRAM_API: TELEGRAM_API as string,
      NGROK_URL: NGROK_URL as string,
+     // Gemini
+     GEMINI_API_KEY: GEMINI_API_KEY as string,
+     GEMINI_MODEL: GEMINI_MODEL as string,
 };
