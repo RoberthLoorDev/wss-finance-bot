@@ -15,7 +15,8 @@ export const UpdateCategorySchema = z.object({
      name: z.string().min(2).optional(),
      user_id: z.string().regex(/^\d+$/, "user_id debe ser numérico"),
      type_id: z.string().regex(/^\d+$/, "type_id debe ser numérico").optional(),
-     spending_limit: z.coerce.number().positive().optional(),
+     // Allow null to explicitly clear the spending limit, or a positive number to set it
+     spending_limit: z.coerce.number().positive().nullable().optional(),
 });
 
 export const ListCategoriesQuerySchema = z.object({

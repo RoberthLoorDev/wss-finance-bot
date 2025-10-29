@@ -88,9 +88,10 @@ export class CategoriesController {
                if (!existing) return errorResponse(res, "Categoría no encontrada", 404);
                if (existing.user_id !== userId) return errorResponse(res, "No autorizado para modificar esta categoría", 403);
 
-               const data: import("@prisma/client").Prisma.CategoryUpdateInput = {
+               // Allow explicit null to clear spending_limit, otherwise set value or leave undefined
+               const data: any = {
                     name: name ?? undefined,
-                    spending_limit: spending_limit ?? undefined,
+                    spending_limit: spending_limit === null ? null : spending_limit ?? undefined,
                     ...(type_id ? { type: { connect: { id: toBigInt(type_id) } } } : {}),
                };
 
