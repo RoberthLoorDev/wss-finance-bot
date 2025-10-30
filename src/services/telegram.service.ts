@@ -57,13 +57,17 @@ export class TelegramService {
                const username = message.chat?.username || name;
 
                // Check or create the user
-               let user = await this.users.findByTelegramId(telegramId);
+               let user = await this.users.findByTelegramId(telegramId, {
+                    include: { categories: true }, // add categories relation
+               });
+
                if (!user) {
                     user = await this.users.create({
                          telegram_user_id: telegramId,
                          name,
                          username,
                     });
+                    user = { ...user };
                     console.log(`New user registered: ${name} (${telegramId})`);
                }
 
@@ -80,25 +84,18 @@ export class TelegramService {
 
                // Save the user's message
                await this.messages.create({
-                    conversation: { connect: { id: conversation.id } }, // connect by relation
+                    conversation: { connect: { id: conversation!.id } },
                     sender: "user",
                     text,
                });
 
-               // guardar mensaje del usuario
-               await this.messages.create({
-                    conversation: { connect: { id: conversation.id } },
-                    sender: "user",
-                    text,
-               });
-
-               // obtener contexto
+               // obtain context
                const history = await this.messages.getRecentMessages(conversation.id, 20);
                const context = history
                     .map((m) => `${m.sender === "user" ? user?.name ?? "Usuario" : "Eira"}: ${m.text}`)
                     .join("\n");
 
-               // procesar conversación
+               // process conversation
                const { reply, updatedUser } = await this.manager.process(user, text, context);
 
                // guardar respuesta

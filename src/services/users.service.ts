@@ -62,9 +62,10 @@ export class UserService {
           });
      }
 
-     async findByTelegramId(telegram_user_id: bigint) {
+     async findByTelegramId(telegram_user_id: bigint, options: Omit<Prisma.UserFindUniqueArgs, "where"> = {}) {
           return prisma.user.findUnique({
                where: { telegram_user_id },
+               ...options,
           });
      }
 }
