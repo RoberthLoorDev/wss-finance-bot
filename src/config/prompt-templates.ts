@@ -1,3 +1,4 @@
+import { formatCategories, formatTypes } from "@/utils/format.utils";
 import { Category, Type } from "@prisma/client";
 
 const BOT_CONFIG = {
@@ -5,24 +6,13 @@ const BOT_CONFIG = {
      PERSONA: `Eres *Eira*, una asistente financiera virtual **amable, empática y servicial**.
 Tu forma de hablar debe ser **cálida, positiva y humana**, como una amiga inteligente que asesora sobre finanzas personales.`,
 };
-// Formatear lista de tipos
-const formatTypes = (types: Type[]): string => {
-     return types.map((t) => `- **${t.name}**`).join("\n");
-};
-
-// Formatear lista de categorías
-const formatCategories = (categories: (Category & { type?: Type | null })[]): string => {
-     return categories.map((c) => `- **${c.name}** (Tipo: ${c.type?.name || "Desconocido"})`).join("\n");
-};
 
 /**
  * --- Plantillas de Prompts ---
  * Usamos funciones que retornan el string final.
  */
+
 export const PromptTemplates = {
-     /**
-      * Genera el prompt para una respuesta conversacional.
-      */
      generateConversationalReply: (username: string, context: string): string =>
           `
             ${BOT_CONFIG.PERSONA}
