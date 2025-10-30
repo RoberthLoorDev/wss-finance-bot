@@ -11,15 +11,8 @@ export class TelegramController {
      async webhook(req: Request, res: Response) {
           try {
                const update = TelegramUpdateSchema.parse(req.body);
-               if (!update.message) return successResponse(res, "Sin mensaje para procesar", {}, 200);
-
-               const chatId = update.message.chat.id;
-               const text = update.message.text;
-
-               const reply = await this.service.processMessage(text);
-               await this.service.sendMessage(chatId, reply);
-
-               return successResponse(res, "Mensaje procesado correctamente", {}, 200);
+               await this.service.handleUpdate(update);
+               return successResponse(res, "Update recibido", {}, 200);
           } catch (error) {
                console.error("❌ Telegram webhook:", error);
                return errorResponse(res, "Error procesando actualización de Telegram", 500);

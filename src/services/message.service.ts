@@ -36,4 +36,14 @@ export class MessageService {
      async delete(id: bigint) {
           return prisma.message.delete({ where: { id } });
      }
+
+     async getRecentMessages(conversationId: bigint, limit = 20) {
+          const messages = await prisma.message.findMany({
+               where: { conversation_id: conversationId },
+               orderBy: { created_at: "desc" },
+               take: limit,
+          });
+
+          return messages.reverse();
+     }
 }

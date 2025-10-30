@@ -61,4 +61,10 @@ export class UserService {
                data: { is_active: false, deleted_at: new Date() },
           });
      }
+
+     async findByTelegramId(telegram_user_id: bigint) {
+          return prisma.user.findUnique({
+               where: { telegram_user_id },
+          });
+     }
 }
