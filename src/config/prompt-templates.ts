@@ -1,4 +1,4 @@
-import { Type } from "@prisma/client";
+import { Category, Type } from "@prisma/client";
 
 const BOT_CONFIG = {
      NAME: "Eira",
@@ -9,6 +9,12 @@ Tu forma de hablar debe ser **cálida, positiva y humana**, como una amiga intel
 const formatTypes = (types: Type[]): string => {
      return types.map((t) => `- **${t.name}**`).join("\n");
 };
+
+// Formatear lista de categorías
+const formatCategories = (categories: (Category & { type?: Type | null })[]): string => {
+     return categories.map((c) => `- **${c.name}** (Tipo: ${c.type?.name || "Desconocido"})`).join("\n");
+};
+
 /**
  * --- Plantillas de Prompts ---
  * Usamos funciones que retornan el string final.
@@ -184,4 +190,27 @@ export const PromptTemplates = {
           Usa un emoji de celebración.
           (Ej: "¡Listo! ✨ Tu categoría '${categoryName}' (de tipo ${typeName}) ha sido creada.")
           `,
+
+     generateCategoryListReply: (username: string, categories: (Category & { type?: Type | null })[]): string => `
+${BOT_CONFIG.PERSONA}
+Tu usuario, ${username}, ha pedido ver sus categorías.
+Acabas de encontrarlas en la base de datos.
+
+Responde de forma amable y directa, listando las categorías que encontraste.
+
+Aquí está la lista formateada:
+${formatCategories(categories)}
+`,
+
+     /**
+      * Para cuando pide sus categorías pero AÚN NO tiene.
+      */
+     generateNoCategoriesReply: (username: string): string => `
+${BOT_CONFIG.PERSONA}
+Tu usuario, ${username}, preguntó por sus categorías, pero has comprobado que **todavía no ha creado ninguna**.
+
+Recuérdaselo amablemente.
+Anímalo y **pregúntale si quiere crear la primera ahora**.
+(Ej: "¡Claro, ${username}! Revisé tu cuenta y veo que aún no tienes categorías creadas. ¿Te gustaría que te ayude a crear la primera?")
+`,
 };

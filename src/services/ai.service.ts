@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ENV } from "@/config/env";
 import { PromptTemplates } from "@/config/prompt-templates";
-import { Type } from "@prisma/client";
+import { Category, Type } from "@prisma/client";
 
 const genAI = new GoogleGenerativeAI(ENV.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: ENV.GEMINI_MODEL });
@@ -25,7 +25,15 @@ export class AiService {
      async detectIntentAdvanced(
           message: string,
           context: string
-     ): Promise<"info" | "change_name" | "register_transaction" | "create_category" | "request_onboarding_help" | "other"> {
+     ): Promise<
+          | "info"
+          | "change_name"
+          | "register_transaction"
+          | "create_category"
+          | "request_onboarding_help"
+          | "other"
+          | "check_categories"
+     > {
           const prompt = `
           Eres un analizador de intenciones para un asistente financiero.
           Tu objetivo es clasificar el "Mensaje actual" del usuario en UNA categoría.
@@ -52,6 +60,9 @@ export class AiService {
 
           - info: Es un saludo, una despedida, o charla general que no encaja en lo anterior.
           (Ej: "hola", "gracias", "cuánto es 2+2")
+          
+          - check_categories: El usuario quiere ver, consultar o listar sus categorías existentes. 
+          (Ej: "¿cuáles son mis categorías?", "ver mis categorías", "dime mis categorías")
 
           - other: Cualquier otra cosa.
           `;
@@ -62,6 +73,7 @@ export class AiService {
           if (output.includes("request_onboarding_help")) return "request_onboarding_help";
           if (output.includes("register_transaction")) return "register_transaction";
           if (output.includes("change_name")) return "change_name";
+          if (output.includes("check_categories")) return "check_categories";
           if (output.includes("info")) return "info";
           return "other";
      }
@@ -144,6 +156,16 @@ export class AiService {
 
      async generateCategoryCreatedReply(categoryName: string, typeName: string): Promise<string> {
           const prompt = PromptTemplates.generateCategoryCreatedReply(categoryName, typeName);
+          return this.generateText(prompt);
+     }
+
+     async generateCategoryListReply(username: string, categories: (Category & { type?: Type | null })[]): Promise<string> {
+          const prompt = PromptTemplates.generateCategoryListReply(username, categories);
+          return this.generateText(prompt);
+     }
+
+     async generateNoCategoriesReply(username: string): Promise<string> {
+          const prompt = PromptTemplates.generateNoCategoriesReply(username);
           return this.generateText(prompt);
      }
 }

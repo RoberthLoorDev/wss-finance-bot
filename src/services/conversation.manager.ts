@@ -5,6 +5,7 @@ import { RegisterTransactionHandler } from "@/intents/register-transaction.handl
 import { TypeService } from "@/services/types.service";
 import { CreateCategoryHandler } from "@/intents/create-category.handler";
 import { OnboardingHelpHandler } from "@/intents/onboarding-help.handler";
+import { CheckCategoriesHandler } from "@/intents/check-categories.handler";
 
 interface IHandler {
      execute(user: any, text: string, context: string): Promise<any>;
@@ -22,11 +23,12 @@ export class ConversationManager {
           register_transaction: new RegisterTransactionHandler(),
           create_category: new CreateCategoryHandler(),
           request_onboarding_help: new OnboardingHelpHandler(),
+          check_categories: new CheckCategoriesHandler(),
      };
 
      async process(user: any, text: string, context: string) {
           const intent = await this.ai.detectIntentAdvanced(text, context);
-          // intent puede ser: 'info', 'change_name', 'register_transaction', o 'other'
+          // intent puede ser: 'info', 'change_name', 'register_transaction', 'create_category', 'request_onboarding_help' o 'other'
 
           if (intent === "register_transaction" && (!user.categories || user.categories.length === 0)) {
                const { items: allTypes } = await this.types.findAll({ page: 1, pageSize: 10 });
