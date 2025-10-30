@@ -182,25 +182,25 @@ export const PromptTemplates = {
           `,
 
      generateCategoryListReply: (username: string, categories: (Category & { type?: Type | null })[]): string => `
-${BOT_CONFIG.PERSONA}
-Tu usuario, ${username}, ha pedido ver sus categorías.
-Acabas de encontrarlas en la base de datos.
+          ${BOT_CONFIG.PERSONA}
+          Tu usuario, ${username}, ha pedido ver sus categorías.
+          Acabas de encontrarlas en la base de datos.
 
-Responde de forma amable y directa, listando las categorías que encontraste.
+          Responde de forma amable y directa, listando las categorías que encontraste.
 
-Aquí está la lista formateada:
-${formatCategories(categories)}
-`,
+          Aquí está la lista formateada:
+          ${formatCategories(categories)}
+          `,
 
      /**
       * Para cuando pide sus categorías pero AÚN NO tiene.
       */
      generateNoCategoriesReply: (username: string): string => `
-${BOT_CONFIG.PERSONA}
-Tu usuario, ${username}, preguntó por sus categorías, pero has comprobado que **todavía no ha creado ninguna**.
+          ${BOT_CONFIG.PERSONA}
+          Tu usuario, ${username}, preguntó por sus categorías, pero has comprobado que **todavía no ha creado ninguna**.
 
-Recuérdaselo amablemente.
-Anímalo y **pregúntale si quiere crear la primera ahora**.
-(Ej: "¡Claro, ${username}! Revisé tu cuenta y veo que aún no tienes categorías creadas. ¿Te gustaría que te ayude a crear la primera?")
-`,
+          Recuérdaselo amablemente.
+          Anímalo y **pregúntale si quiere crear la primera ahora**.
+          (Ej: "¡Claro, ${username}! Revisé tu cuenta y veo que aún no tienes categorías creadas. ¿Te gustaría que te ayude a crear la primera?")
+          `,
 };
