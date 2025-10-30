@@ -1,14 +1,14 @@
 import { ENV } from "@/config/env";
-import axios from "axios";
-import { AiService } from "@/services/ai.service";
-import { UserService } from "@/services/users.service";
-import { MessageService } from "@/services/message.service";
 import { prisma } from "@/db/prisma.db";
+import { MessageService } from "@/services/message.service";
+import { UserService } from "@/services/users.service";
+import axios from "axios";
+import { ConversationManager } from "./conversation.manager";
 
 export class TelegramService {
-     private ai = new AiService();
      private users = new UserService();
      private messages = new MessageService();
+     private manager = new ConversationManager();
 
      async sendMessage(chatId: number | string, text: string) {
           try {
@@ -85,25 +85,34 @@ export class TelegramService {
                     text,
                });
 
-               // Get the last 20 messages for context
-               const history = await this.messages.getRecentMessages(conversation.id, 20);
+               // guardar mensaje del usuario
+               await this.messages.create({
+                    conversation: { connect: { id: conversation.id } },
+                    sender: "user",
+                    text,
+               });
 
+               // obtener contexto
+               const history = await this.messages.getRecentMessages(conversation.id, 20);
                const context = history
-                    .map((m) => `${m.sender === "user" ? `${user.name || "Usuario"}` : "FinBot"}: ${m.text}`)
+                    .map((m) => `${m.sender === "user" ? user?.name ?? "Usuario" : "Eira"}: ${m.text}`)
                     .join("\n");
 
-               // Generate a contextual reply
-               const reply = await this.ai.generateConversationalReply(user.name || "amigo", context);
+               // procesar conversación
+               const { reply, updatedUser } = await this.manager.process(user, text, context);
 
-               // Send the reply
-               await this.sendMessage(chatId, reply);
-
-               // Save the bot's reply
+               // guardar respuesta
                await this.messages.create({
                     conversation: { connect: { id: conversation.id } },
                     sender: "bot",
                     text: reply,
                });
+
+               // enviar mensaje
+               await this.sendMessage(chatId, reply);
+
+               // actualizar user en memoria si cambió
+               if (updatedUser) user = updatedUser;
           } catch (error: any) {
                console.error("❌ Telegram handleUpdate error:", error.message || error);
           }
