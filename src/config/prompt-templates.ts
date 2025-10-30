@@ -203,4 +203,55 @@ export const PromptTemplates = {
           Anímalo y **pregúntale si quiere crear la primera ahora**.
           (Ej: "¡Claro, ${username}! Revisé tu cuenta y veo que aún no tienes categorías creadas. ¿Te gustaría que te ayude a crear la primera?")
           `,
+
+     extractUpdateCategoryInfo: (message: string): string => `
+          Analiza el siguiente mensaje del usuario que quiere renombrar una categoría:
+          "${message}"
+
+          Extrae el **nombre actual (viejo)** de la categoría y el **nuevo nombre** al que quiere cambiarla.
+
+          Responde **únicamente con un objeto JSON válido** con esta estructura:
+          {
+          "oldName": "..."
+          "newName": "..."
+          }
+
+          Ejemplos:
+          - Si el mensaje es "cambia el nombre a la categoria mascotas, llamada Animales", responde:
+          {"oldName": "mascotas", "newName": "Animales"}
+          - Si el mensaje es "renombra 'comida' por 'Alimentos'", responde:
+          {"oldName": "comida", "newName": "Alimentos"}
+          - Si el mensaje es "quiero que mscota ahora se llame Mascotas 2", responde:
+          {"oldName": "mscota", "newName": "Mascotas 2"}
+
+          Si no puedes identificar uno de los dos nombres, responde:
+          {"oldName": null, "newName": null}
+          `,
+
+     // busqueda la mejor coincidencia de nombre de categoría
+     findBestCategoryMatch: (targetName: string, categoryNames: string[]): string => `
+          Eres un asistente de búsqueda. Tu trabajo es encontrar la mejor coincidencia para un nombre buscado dentro de una lista.
+
+          Analiza el "Nombre Buscado" por el usuario.
+          Encuentra la **mejor y más obvia coincidencia** en la "Lista de Categorías Existentes".
+
+          Nombre Buscado: "${targetName}"
+          Lista de Categorías Existentes: ${categoryNames.join(", ")}
+
+          Responde **solo con el nombre exacto de la lista**.
+          - Si el Nombre Buscado es "mscota" y en la lista está "Mascotas", responde "Mascotas".
+          - Si el Nombre Buscado es "comid" y en la lista está "Comida", responde "Comida".
+          - Si no hay ninguna coincidencia clara o es demasiado ambiguo, responde "NULL".
+          `,
+
+     generateCategoryUpdatedReply: (oldName: string, newName: string): string => `
+          ${BOT_CONFIG.PERSONA}
+          Acabas de renombrar exitosamente una categoría para el usuario.
+
+          Nombre Antiguo: ${oldName}
+          Nombre Nuevo: ${newName}
+
+          Confirma la acción con un mensaje **corto, positivo y claro**.
+          (Ej: "¡Entendido! 👍 Renombré tu categoría '${oldName}' a '${newName}'.")
+          `,
 };

@@ -6,12 +6,20 @@ import { TypeService } from "@/services/types.service";
 import { CreateCategoryHandler } from "@/intents/create-category.handler";
 import { OnboardingHelpHandler } from "@/intents/onboarding-help.handler";
 import { CheckCategoriesHandler } from "@/intents/check-categories.handler";
+import { UpdateCategoryHandler } from "@/intents/update-category.handler";
 
 interface IHandler {
      execute(user: any, text: string, context: string): Promise<any>;
 }
 
-type HandledIntent = "info" | "change_name" | "register_transaction" | "create_category" | "other";
+type HandledIntent =
+     | "info"
+     | "change_name"
+     | "register_transaction"
+     | "create_category"
+     | "update_category"
+     | "check_categories"
+     | "other";
 
 export class ConversationManager {
      private ai = new AiService();
@@ -24,6 +32,7 @@ export class ConversationManager {
           create_category: new CreateCategoryHandler(),
           request_onboarding_help: new OnboardingHelpHandler(),
           check_categories: new CheckCategoriesHandler(),
+          update_category: new UpdateCategoryHandler(),
      };
 
      async process(user: any, text: string, context: string) {

@@ -2,14 +2,10 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ENV } from "@/config/env";
 import { PromptTemplates } from "@/config/prompt-templates";
 import { Category, Type } from "@prisma/client";
+import { ExtractedCategoryInfo, ExtractedUpdateInfo } from "@/types/ia.types";
 
 const genAI = new GoogleGenerativeAI(ENV.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: ENV.GEMINI_MODEL });
-
-interface ExtractedCategoryInfo {
-     categoryName: string | null;
-     typeName: string | null;
-}
 
 export class AiService {
      private async generateText(prompt: string): Promise<string> {
@@ -33,6 +29,7 @@ export class AiService {
           | "request_onboarding_help"
           | "other"
           | "check_categories"
+          | "update_category"
      > {
           const prompt = `
           Eres un analizador de intenciones para un asistente financiero.
@@ -64,6 +61,9 @@ export class AiService {
           - check_categories: El usuario quiere ver, consultar o listar sus categorías existentes. 
           (Ej: "¿cuáles son mis categorías?", "ver mis categorías", "dime mis categorías")
 
+          - update_category: El usuario quiere editar, renombrar o cambiar el nombre de una categoría existente.
+          (Ej: "renombra la categoría", "cambia el nombre a mascotas", "actualiza 'comida'")
+
           - other: Cualquier otra cosa.
           `;
 
@@ -74,6 +74,7 @@ export class AiService {
           if (output.includes("register_transaction")) return "register_transaction";
           if (output.includes("change_name")) return "change_name";
           if (output.includes("check_categories")) return "check_categories";
+          if (output.includes("update_category")) return "update_category";
           if (output.includes("info")) return "info";
           return "other";
      }
@@ -166,6 +167,33 @@ export class AiService {
 
      async generateNoCategoriesReply(username: string): Promise<string> {
           const prompt = PromptTemplates.generateNoCategoriesReply(username);
+          return this.generateText(prompt);
+     }
+
+     async extractUpdateCategoryInfo(message: string): Promise<ExtractedUpdateInfo | null> {
+          const prompt = PromptTemplates.extractUpdateCategoryInfo(message);
+          try {
+               const rawOutput = (await this.generateText(prompt)).replace(/```json\n?|\n?```/g, "").trim();
+               const parsed = JSON.parse(rawOutput) as ExtractedUpdateInfo;
+               return parsed;
+          } catch (error) {
+               console.error("❌ Error al parsear JSON (extractUpdateCategoryInfo):", error);
+               return null;
+          }
+     }
+
+     async findBestCategoryMatch(targetName: string, categoryNames: string[]): Promise<string | null> {
+          const prompt = PromptTemplates.findBestCategoryMatch(targetName, categoryNames);
+          const match = await this.generateText(prompt);
+
+          if (match.toUpperCase() === "NULL" || match.length > 50) {
+               return null;
+          }
+          return match;
+     }
+
+     async generateCategoryUpdatedReply(oldName: string, newName: string): Promise<string> {
+          const prompt = PromptTemplates.generateCategoryUpdatedReply(oldName, newName);
           return this.generateText(prompt);
      }
 }
