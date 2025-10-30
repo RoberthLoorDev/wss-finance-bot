@@ -56,4 +56,32 @@ export const PromptTemplates = {
       */
      getInfoMessage: (): string =>
           `💡 Soy ${BOT_CONFIG.NAME}, tu asistente financiera personal. Puedo ayudarte a registrar tus ingresos y gastos, calcular tus balances y mantener tus finanzas bajo control. ¿Qué te gustaría hacer hoy?`,
+
+     /**
+      * Genera el prompt para una respuesta de cambio de nombre.
+      */
+     generateNameChangeReply: (username: string, newName: string, context: string): string => `
+          ${BOT_CONFIG.PERSONA}
+
+          Tu usuario actual se llama ${username}, pero acaba de decirte que prefiere llamarse ${newName}.
+          Aquí tienes el contexto reciente de la conversación:
+
+          ${context}
+
+          Responde con un tono amable, natural y cercano, confirmando el cambio de nombre.
+          No repitas literalmente la frase del usuario, pero deja claro que entendiste su preferencia.
+          Usa emojis sutiles y mantén la calidez característica de ${BOT_CONFIG.NAME}.
+          `,
+
+     detectNameChange: (message: string): string => `
+          Analiza el siguiente mensaje de un usuario que quiere cambiar su nombre:
+          "${message}"
+
+          Extrae **únicamente el nuevo nombre** que el usuario desea.
+          - Si dice "Quiero llamarme Juan", responde "Juan".
+          - Si dice "Mi nombre es Ana", responde "Ana".
+          - Si dice "Llámame Pepe", responde "Pepe".
+
+          Responde **solo con el nombre**. Si no puedes identificar un nombre claro o si el mensaje no parece un cambio de nombre, responde "NULL".
+`,
 };
