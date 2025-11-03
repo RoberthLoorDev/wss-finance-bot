@@ -1,5 +1,5 @@
 import { formatCategories, formatTypes } from "@/utils/format.utils";
-import { Category, Type } from "@prisma/client";
+import { Category, Transaction, Type } from "@prisma/client";
 
 const BOT_CONFIG = {
      NAME: "Eira",
@@ -253,5 +253,180 @@ export const PromptTemplates = {
 
           Confirma la acción con un mensaje **corto, positivo y claro**.
           (Ej: "¡Entendido! 👍 Renombré tu categoría '${oldName}' a '${newName}'.")
+          `,
+
+     /**
+      * Extrae los detalles de una transacción desde un mensaje de texto.
+      */
+     extractTransactionInfo: (message: string): string => `
+          Analiza el siguiente mensaje de un usuario que quiere registrar una transacción:
+          "${message}"
+
+          Extrae el **monto (amount)**, una **descripción (description)** y la **fecha (date)**.
+          - El monto debe ser un número.
+          - La descripción debe ser lo más detallada posible (ej: "comida para el perro", "sueldo").
+          - La fecha debe estar en formato ISO (YYYY-MM-DD) solo si se menciona explícitamente (ej: "ayer", "el 5 de mayo"). 
+          - Si no se menciona una fecha o dice "hoy", responde null para la fecha.
+
+          Responde **únicamente con un objeto JSON válido**:
+          {
+          "amount": ... (number),
+          "description": "..." (string),
+          "date": "..." (string YYYY-MM-DD o null)
+          }
+
+          Ejemplos:
+          - Mensaje: "registra mi sueldo, que fue de 450 dolares"
+          Respuesta: {"amount": 450, "description": "sueldo", "date": null}
+          - Mensaje: "ingresa un gasto de 60 dolares de la comida para el perro"
+          Respuesta: {"amount": 60, "description": "comida para el perro", "date": null}
+          - Mensaje: "Ayer pagué 25 en la cena"
+          Respuesta: {"amount": 25, "description": "cena", "date": "2025-11-01"} // (Asumiendo que hoy es 2025-11-02)
+          - Mensaje: "5 en un café"
+          Respuesta: {"amount": 5, "description": "café", "date": null}
+
+          Si no puedes identificar un monto o una descripción clara, responde:
+          {"amount": null, "description": null, "date": null}
+          `,
+
+     /**
+      * Confirma que una transacción ha sido creada.
+      */
+     generateTransactionCreatedReply: (amount: number, description: string, categoryName: string): string => `
+          ${BOT_CONFIG.PERSONA}
+          Acabas de registrar exitosamente una transacción para el usuario.
+
+          Monto: ${amount}
+          Descripción: ${description}
+          Categoría: ${categoryName}
+
+          Confirma la acción con un mensaje **corto, amigable y claro**.
+          Menciona el monto y la categoría.
+          (Ej: "¡Listo! 💸 Registré ${amount} en tu categoría '${categoryName}'.")
+          `,
+
+     /**
+      * Para cuando una transacción no tiene categoría clara.
+      */
+     generateAskForCategoryReply: (
+          username: string,
+          amount: number,
+          description: string,
+          categories: (Category & { type?: Type | null })[]
+     ): string => `
+          ${BOT_CONFIG.PERSONA}
+          Tu usuario, ${username}, intentó registrar una transacción:
+          - Monto: ${amount}
+          - Descripción: ${description}
+
+          ¡Pero no encontraste una categoría obvia para asignarla!
+
+          Explícale amablemente que ya registraste el movimiento, pero que no estás segura de dónde guardarlo.
+          **Pregúntale en cuál de sus categorías existentes le gustaría registrarlo.**
+
+          Lista sus categorías disponibles (usa la función 'formatCategories'):
+          ${formatCategories(categories)}
+
+          (Ej: "¡Hola ${username}! Registré tu movimiento de ${amount} (${description}), pero no estoy segura de dónde clasificarlo. ¿En cuál de estas categorías lo pongo?")
+          `,
+
+     /**
+      * Extraer los detalles para actualizar una transacción existente.
+      */
+
+     extractTransactionUpdateSlots: (message: string, context: string, categoryNames: string[]): string => `
+          Eres un asistente de IA que analiza una conversación para rellenar "slots" (datos faltantes).
+          El objetivo es editar una transacción. Necesitamos dos datos:
+          1.  'targetTransactionId': El ID de la transacción a editar (ej: "123").
+          2.  'newCategoryName': El nombre de la categoría a asignar (ej: "Familia").
+
+          Analiza el "Mensaje actual" del usuario, PERO también el "Contexto" (la última respuesta del Bot) para encontrar pistas.
+
+          Historial de conversación (Contexto):
+          ${context}
+
+          Mensaje actual del usuario: "${message}"
+
+          Lista de Categorías del Usuario: ${categoryNames.join(", ")}
+
+          Responde **únicamente con un objeto JSON válido** con la estructura:
+          {
+            "targetTransactionId": "..." (string o null),
+            "newCategoryName": "..." (string o null)
+          }
+
+          Casos de ejemplo:
+
+          // Caso 1: El usuario solo da la categoría (el ID estaba en el contexto)
+          - Contexto: "...Bot: ¡Encontré esta! (Ref: 123) Monto: $50, Desc: 'Cena'. ¿En qué categoría la guardamos?"
+          - Mensaje: "métela en Familia"
+          - Respuesta: {"targetTransactionId": "123", "newCategoryName": "Familia"}
+
+          // Caso 2: El usuario solo describe la transacción (aún no hay ID)
+          - Contexto: "...Bot: ¿Qué transacción quieres editar?"
+          - Mensaje: "la cena que tuve con mi familia"
+          - Respuesta: {"targetTransactionId": null, "newCategoryName": null} // (Aún no podemos extraer el ID)
+
+          // Caso 3: El usuario da una categoría, pero el contexto no tiene un ID
+          - Contexto: "...Bot: ¿Qué transacción quieres editar?"
+          - Mensaje: "en Familia"
+          - Respuesta: {"targetTransactionId": null, "newCategoryName": "Familia"} // (Falta el ID)
+          `,
+
+     /**
+      * Pregunta amablemente por la descripción de la transacción a editar.
+      */
+     generateAskForTransactionDescription: (username: string): string => `
+          ${BOT_CONFIG.PERSONA}
+          Tu usuario, ${username}, quiere editar una transacción, pero no dijo cuál.
+          
+          Pregúntale amablemente **qué transacción** le gustaría editar.
+          Pídele que la describa.
+          
+          (Ej: "¡Claro, ${username}! ¿Qué transacción te gustaría editar? Intenta describírmela (ej: 'la cena del sábado', 'el pago de 50').")
+          `,
+
+     /**
+      * confirma que se encontró la transacción para editar
+      */
+
+     generateConfirmTransactionFound: (
+          username: string,
+          transaction: Transaction & { category?: Category | null },
+          categories: (Category & { type?: Type | null })[]
+     ): string => `
+          ${BOT_CONFIG.PERSONA}
+          Tu usuario, ${username}, describió una transacción y la encontraste.
+          
+          Datos de la transacción:
+          - ID: ${transaction.id}
+          - Monto: ${transaction.amount}
+          - Descripción: ${transaction.description}
+          - Categoría actual: ${transaction.category?.name || "Ninguna"}
+
+          Infórmale que la encontraste. **Menciona la Referencia (ID) de forma natural.**
+          Muéstrale los datos (Monto, Descripción, Categoría actual).
+          Pregúntale qué quiere hacer con ella, o **en qué categoría le gustaría guardarla**.
+          
+          Lista sus categorías disponibles (usa la función 'formatCategories'):
+          ${formatCategories(categories)}
+
+          (Ej: "¡La encontré, ${username}! Es un movimiento (Ref: ${transaction.id}) de $${transaction.amount} por '${
+          transaction.description
+     }', que ahora está como '${transaction.category?.name || "Ninguna"}'. ¿En qué categoría la guardamos?")
+          `,
+
+     /**
+      * Confirma que una transacción ha sido actualizada.
+      */
+     generateTransactionUpdatedReply: (description: string, newCategoryName: string): string => `
+          ${BOT_CONFIG.PERSONA}
+          ¡Acabas de actualizar una transacción!
+
+          Descripción: ${description}
+          Nueva Categoría: ${newCategoryName}
+
+          Confirma la acción con un mensaje **corto y positivo**.
+          (Ej: "¡Perfecto! 👍 Moví tu transacción '${description}' a la categoría '${newCategoryName}'.")
           `,
 };

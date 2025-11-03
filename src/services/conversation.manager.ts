@@ -7,6 +7,7 @@ import { CreateCategoryHandler } from "@/intents/create-category.handler";
 import { OnboardingHelpHandler } from "@/intents/onboarding-help.handler";
 import { CheckCategoriesHandler } from "@/intents/check-categories.handler";
 import { UpdateCategoryHandler } from "@/intents/update-category.handler";
+import { UpdateTransactionHandler } from "@/intents/update-transaction.handler";
 
 interface IHandler {
      execute(user: any, text: string, context: string): Promise<any>;
@@ -19,6 +20,8 @@ type HandledIntent =
      | "create_category"
      | "update_category"
      | "check_categories"
+     | "update_transaction"
+     | "create_transaction"
      | "other";
 
 export class ConversationManager {
@@ -33,6 +36,8 @@ export class ConversationManager {
           request_onboarding_help: new OnboardingHelpHandler(),
           check_categories: new CheckCategoriesHandler(),
           update_category: new UpdateCategoryHandler(),
+          update_transaction: new UpdateTransactionHandler(),
+          create_transaction: new RegisterTransactionHandler(),
      };
 
      async process(user: any, text: string, context: string) {

@@ -27,4 +27,23 @@ export class TransactionService {
                data: { deleted_at: new Date() },
           });
      }
+
+     async findRecentByUser(user_id: bigint, days: number = 30) {
+          const dateLimit = new Date();
+          dateLimit.setDate(dateLimit.getDate() - days);
+
+          return prisma.transaction.findMany({
+               where: {
+                    user_id,
+                    deleted_at: null,
+                    date: { gte: dateLimit },
+               },
+               orderBy: { date: "desc" },
+               include: { category: true },
+          });
+     }
+
+     async update(id: bigint, data: Prisma.TransactionUpdateInput) {
+          return prisma.transaction.update({ where: { id }, data });
+     }
 }

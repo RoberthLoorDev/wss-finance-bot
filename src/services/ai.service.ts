@@ -1,8 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ENV } from "@/config/env";
 import { PromptTemplates } from "@/config/prompt-templates";
-import { Category, Type } from "@prisma/client";
+import { Category, Transaction, Type } from "@prisma/client";
 import { ExtractedCategoryInfo, ExtractedUpdateInfo } from "@/types/ia.types";
+import { ExtractedTransactionInfo, ExtractedTransactionUpdateSlots } from "@/types/transaction.types";
 
 const genAI = new GoogleGenerativeAI(ENV.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: ENV.GEMINI_MODEL });
@@ -30,6 +31,8 @@ export class AiService {
           | "other"
           | "check_categories"
           | "update_category"
+          | "update_transaction"
+          | "create_transaction"
      > {
           const prompt = `
           Eres un analizador de intenciones para un asistente financiero.
@@ -52,6 +55,9 @@ export class AiService {
           - register_transaction: El usuario quiere registrar un gasto o ingreso.
           (Ej: "gasté 50 en...", "me pagaron 1000")
 
+          - create_transaction: El usuario quiere registrar un gasto o ingreso (sinónimo de register_transaction).
+          (Ej: "gasté 50 en...", "me pagaron 1000")
+
           - change_name: El usuario quiere cambiar su nombre.
           (Ej: "llámame Pepe")
 
@@ -61,8 +67,11 @@ export class AiService {
           - check_categories: El usuario quiere ver, consultar o listar sus categorías existentes. 
           (Ej: "¿cuáles son mis categorías?", "ver mis categorías", "dime mis categorías")
 
-          - update_category: El usuario quiere editar, renombrar o cambiar el nombre de una categoría existente.
-          (Ej: "renombra la categoría", "cambia el nombre a mascotas", "actualiza 'comida'")
+          - update_category: El usuario quiere **RENOMBRAR** una categoría existente. Quiere que el nombre de la categoría en sí cambie.
+          (Ej: "renombra la categoría", "cambia el nombre a mascotas por Animales", "actualiza 'comida' a 'Alimentos'")
+          
+          - update_transaction: El usuario quiere **MODIFICAR** o **ASIGNAR** una transacción (un movimiento de dinero) a una categoría. La categoría en sí no cambia, pero la transacción se guarda *dentro* de ella.
+          (Ej: "quiero editar la última transacción", "actualiza el gasto de la cena", "mueve el pago de 50 a otra categoría", "quiero que la ultima transaccion la agregues a la categoria familia")
 
           - other: Cualquier otra cosa.
           `;
@@ -74,8 +83,13 @@ export class AiService {
           if (output.includes("register_transaction")) return "register_transaction";
           if (output.includes("change_name")) return "change_name";
           if (output.includes("check_categories")) return "check_categories";
+          if (output.includes("update_transaction")) return "update_transaction";
           if (output.includes("update_category")) return "update_category";
+          // --------------------------------------------------
+
+          if (output.includes("create_transaction")) return "create_transaction";
           if (output.includes("info")) return "info";
+
           return "other";
      }
 
@@ -194,6 +208,72 @@ export class AiService {
 
      async generateCategoryUpdatedReply(oldName: string, newName: string): Promise<string> {
           const prompt = PromptTemplates.generateCategoryUpdatedReply(oldName, newName);
+          return this.generateText(prompt);
+     }
+
+     async extractTransactionInfo(message: string): Promise<ExtractedTransactionInfo | null> {
+          const prompt = PromptTemplates.extractTransactionInfo(message);
+          try {
+               const rawOutput = (await this.generateText(prompt)).replace(/```json\n?|\n?```/g, "").trim();
+               const parsed = JSON.parse(rawOutput) as ExtractedTransactionInfo;
+
+               if (parsed.amount === null || parsed.description === null) {
+                    return null;
+               }
+               return parsed;
+          } catch (error) {
+               console.error("❌ Error al parsear JSON (extractTransactionInfo):", error);
+               return null;
+          }
+     }
+
+     async generateTransactionCreatedReply(amount: number, description: string, categoryName: string): Promise<string> {
+          const prompt = PromptTemplates.generateTransactionCreatedReply(amount, description, categoryName);
+          return this.generateText(prompt);
+     }
+
+     async generateAskForCategoryReply(
+          username: string,
+          amount: number,
+          description: string,
+          categories: (Category & { type?: Type | null })[]
+     ): Promise<string> {
+          const prompt = PromptTemplates.generateAskForCategoryReply(username, amount, description, categories);
+          return this.generateText(prompt);
+     }
+
+     async extractTransactionUpdateSlots(
+          message: string,
+          context: string,
+          categoryNames: string[]
+     ): Promise<ExtractedTransactionUpdateSlots | null> {
+          const prompt = PromptTemplates.extractTransactionUpdateSlots(message, context, categoryNames);
+          try {
+               const rawOutput = (await this.generateText(prompt)).replace(/```json\n?|\n?```/g, "").trim();
+               const parsed = JSON.parse(rawOutput) as ExtractedTransactionUpdateSlots;
+               return parsed;
+          } catch (error) {
+               console.error("❌ Error al parsear JSON (extractTransactionUpdateSlots):", error);
+               return null;
+          }
+     }
+
+     async generateAskForTransactionDescription(username: string): Promise<string> {
+          const prompt = PromptTemplates.generateAskForTransactionDescription(username);
+          return this.generateText(prompt);
+     }
+
+     async generateConfirmTransactionFound(
+          username: string,
+          transaction: Transaction,
+          categories: (Category & { type?: Type | null })[]
+     ): Promise<string> {
+          const prompt = PromptTemplates.generateConfirmTransactionFound(username, transaction, categories);
+          return this.generateText(prompt);
+     }
+
+     async generateTransactionUpdatedReply(description: string, newCategoryName: string): Promise<string> {
+          const prompt = PromptTemplates.generateTransactionUpdatedReply(description, newCategoryName);
           return this.generateText(prompt);
      }
 }
