@@ -1,9 +1,14 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ENV } from "@/config/env";
 import { PromptTemplates } from "@/config/prompt-templates";
-import { Category, Transaction, Type } from "@prisma/client";
 import { ExtractedCategoryInfo, ExtractedUpdateInfo } from "@/types/ia.types";
-import { ExtractedTransactionInfo, ExtractedTransactionUpdateSlots } from "@/types/transaction.types";
+import {
+     ExtractedTransactionFilters,
+     ExtractedTransactionInfo,
+     ParsedDateQuery,
+     ExtractedTransactionUpdateSlots,
+} from "@/types/transaction.types";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { Category, Transaction, Type } from "@prisma/client";
 
 const genAI = new GoogleGenerativeAI(ENV.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: ENV.GEMINI_MODEL });
@@ -33,6 +38,7 @@ export class AiService {
           | "update_category"
           | "update_transaction"
           | "create_transaction"
+          | "check_transactions"
      > {
           const prompt = `
           Eres un analizador de intenciones para un asistente financiero.
@@ -67,6 +73,9 @@ export class AiService {
           - check_categories: El usuario quiere ver, consultar o listar sus categorías existentes. 
           (Ej: "¿cuáles son mis categorías?", "ver mis categorías", "dime mis categorías")
 
+          - check_transactions: El usuario quiere ver, consultar, listar o un reporte de sus **movimientos o transacciones**.
+          (Ej: "ver mis gastos", "cuánto gasté en comida", "reporte de este mes", "dame los movimientos de ayer")
+
           - update_category: El usuario quiere **RENOMBRAR** una categoría existente. Quiere que el nombre de la categoría en sí cambie.
           (Ej: "renombra la categoría", "cambia el nombre a mascotas por Animales", "actualiza 'comida' a 'Alimentos'")
           
@@ -85,8 +94,7 @@ export class AiService {
           if (output.includes("check_categories")) return "check_categories";
           if (output.includes("update_transaction")) return "update_transaction";
           if (output.includes("update_category")) return "update_category";
-          // --------------------------------------------------
-
+          if (output.includes("check_transactions")) return "check_transactions";
           if (output.includes("create_transaction")) return "create_transaction";
           if (output.includes("info")) return "info";
 
@@ -274,6 +282,50 @@ export class AiService {
 
      async generateTransactionUpdatedReply(description: string, newCategoryName: string): Promise<string> {
           const prompt = PromptTemplates.generateTransactionUpdatedReply(description, newCategoryName);
+          return this.generateText(prompt);
+     }
+
+     // extraer filtros de transacciones
+     async extractTransactionFilters(message: string): Promise<ExtractedTransactionFilters | null> {
+          const prompt = PromptTemplates.extractTransactionFilters(message);
+          try {
+               const rawOutput = (await this.generateText(prompt)).replace(/```json\n?|\n?```/g, "").trim();
+               const parsed = JSON.parse(rawOutput) as ExtractedTransactionFilters;
+               return parsed;
+          } catch (error) {
+               console.error("❌ Error al parsear JSON (extractTransactionFilters):", error);
+               return null;
+          }
+     }
+
+     async parseDateQuery(dateQuery: string, currentDate: string): Promise<ParsedDateQuery | null> {
+          const prompt = PromptTemplates.parseDateQuery(dateQuery, currentDate);
+          try {
+               const rawOutput = (await this.generateText(prompt)).replace(/```json\n?|\n?```/g, "").trim();
+               const parsed = JSON.parse(rawOutput) as ParsedDateQuery;
+               return parsed;
+          } catch (error) {
+               console.error("❌ Error al parsear JSON (parseDateQuery):", error);
+               return null;
+          }
+     }
+
+     async generateTransactionListReply(
+          username: string,
+          transactions: (Transaction & { category?: Category | null })[],
+          filterDescription: string
+     ): Promise<string> {
+          const prompt = PromptTemplates.generateTransactionListReply(username, transactions, filterDescription);
+          return this.generateText(prompt);
+     }
+
+     async generateNoTransactionsFoundReply(username: string, filterDescription: string): Promise<string> {
+          const prompt = PromptTemplates.generateNoTransactionsFoundReply(username, filterDescription);
+          return this.generateText(prompt);
+     }
+
+     async generateCategoryNotFoundForFilterReply(username: string, categoryName: string): Promise<string> {
+          const prompt = PromptTemplates.generateCategoryNotFoundForFilterReply(username, categoryName);
           return this.generateText(prompt);
      }
 }

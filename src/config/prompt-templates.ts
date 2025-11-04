@@ -1,4 +1,4 @@
-import { formatCategories, formatTypes } from "@/utils/format.utils";
+import { formatCategories, formatTransactions, formatTypes } from "@/utils/format.utils";
 import { Category, Transaction, Type } from "@prisma/client";
 
 const BOT_CONFIG = {
@@ -428,5 +428,145 @@ export const PromptTemplates = {
 
           Confirma la acción con un mensaje **corto y positivo**.
           (Ej: "¡Perfecto! 👍 Moví tu transacción '${description}' a la categoría '${newCategoryName}'.")
+          `,
+
+     /**
+      * Extrae los filtros para buscar transacciones.
+      */
+     extractTransactionFilters: (message: string): string => `
+          Analiza el siguiente mensaje del usuario: [${message}"]
+          Tu trabajo es separar la consulta en tres partes:
+          1.  'typeName': El tipo general (Gastos, Ingresos, Ahorros).
+          2.  'categoryName': La categoría específica (Comida, Sueldo).
+          3.  'dateQuery': El texto COMPLETO que describe el rango de tiempo.
+
+          Responde **únicamente con un objeto JSON válido**:
+          {
+          "categoryName": "..." (string o null),
+          "typeName": "..." (string o null),
+          "dateQuery": "..." (string o null)
+          }
+
+          REGLAS CLAVE:
+          - Si el usuario NO especifica un rango de tiempo (ej: "mis gastos", "mis movimientos", "todo", "todos"), 'dateQuery' DEBE SER 'null'.
+          - Si el usuario SÍ especifica un rango (ej: "de febrero", "mes pasado", "de enero y noviembre"), pon ese texto en 'dateQuery'.
+          - Si dice "gastos", "ingresos" o "ahorros", ponlos en 'typeName'.
+          - Si dice "movimientos" o "transacciones", 'typeName' es null.
+
+          Ejemplos:
+          - Mensaje: "ver mis movimientos"
+          Respuesta: {"categoryName": null, "typeName": null, "dateQuery": null}
+          - Mensaje: "muéstrame mis gastos"
+          Respuesta: {"categoryName": null, "typeName": "Gastos", "dateQuery": null}
+          - Mensaje: "dame todo"
+          Respuesta: {"categoryName": null, "typeName": null, "dateQuery": null}
+          - Mensaje: "muéstrame todos mis movimientos"
+          Respuesta: {"categoryName": null, "typeName": null, "dateQuery": null}
+
+          - Mensaje: "mis ingresos de febrero y noviembre"
+          Respuesta: {"categoryName": null, "typeName": "Ingresos", "dateQuery": "de febrero y noviembre"}
+          - Mensaje: "gastos en Comida del mes pasado"
+          Respuesta: {"categoryName": "Comida", "typeName": "Gastos", "dateQuery": "del mes pasado"}
+          - Mensaje: "movimientos de febrero a noviembre"
+          Respuesta: {"categoryName": null, "typeName": null, "dateQuery": "de febrero a noviembre"}
+          `,
+
+     /**
+      * Convierte texto de fecha en rangos JSON.
+      */
+     parseDateQuery: (dateQuery: string, currentDate: string): string => `
+          Eres un analizador de fechas experto. Tu trabajo es convertir una consulta de texto en un objeto JSON con rangos de fechas (startDate y endDate en formato YYYY-MM-DD).
+
+          La fecha actual es: ${currentDate}.
+          El año actual es 2025. Asume este año si no se especifica otro.
+
+          Consulta del usuario: "${dateQuery}"
+
+          Responde **únicamente con un objeto JSON** con la estructura:
+          {
+               "type": "..." ("range" o "discrete"),
+               "ranges": [ { "start": "YYYY-MM-DD", "end": "YYYY-MM-DD" } ]
+          }
+
+          Ejemplos (asumiendo que hoy es lunes, 3 de noviembre de 2025):
+
+          --- Casos Simples (Meses Relativos) ---
+          - Consulta: "este mes"
+          Respuesta: { "type": "range", "ranges": [ { "start": "2025-11-01", "end": "2025-11-03" } ] }
+          
+          - Consulta: "mes pasado"
+          Respuesta: { "type": "range", "ranges": [ { "start": "2025-10-01", "end": "2025-10-31" } ] }
+
+          - Consulta: "del mes anterior" 
+          Respuesta: { "type": "range", "ranges": [ { "start": "2025-10-01", "end": "2025-10-31" } ] }
+          
+          - Consulta: "mes anterior"
+          Respuesta: { "type": "range", "ranges": [ { "start": "2025-10-01", "end": "2025-10-31" } ] }
+
+          --- Casos de Meses Específicos ---
+          - Consulta: "en febrero"
+          Respuesta: { "type": "range", "ranges": [ { "start": "2025-02-01", "end": "2025-02-28" } ] }
+
+          - Consulta: "de octubre"
+          Respuesta: { "type": "range", "ranges": [ { "start": "2025-10-01", "end": "2025-10-31" } ] }
+
+          - Consulta: "octubre"
+          Respuesta: { "type": "range", "ranges": [ { "start": "2025-10-01", "end": "2025-10-31" } ] }
+
+          --- Casos Complejos (Rangos y Discretos) ---
+          - Consulta: "de febrero y noviembre"
+          Respuesta: { "type": "discrete", "ranges": [ { "start": "2025-02-01", "end": "2025-02-28" }, { "start": "2025-11-01", "end": "2025-11-30" } ] }
+
+          - Consulta: "de febrero a noviembre"
+          Respuesta: { "type": "range", "ranges": [ { "start": "2025-02-01", "end": "2025-11-30" } ] }
+
+          - Consulta: "del 5 de enero al 10 de febrero"
+          Respuesta: { "type": "range", "ranges": [ { "start": "2025-01-05", "end": "2025-02-10" } ] }
+          `,
+
+     /**
+      * Responde con la lista de transacciones encontradas.
+      */
+     generateTransactionListReply: (
+          username: string,
+          transactions: (Transaction & { category?: Category | null })[],
+          filterDescription: string // ej: "de este mes en Comida"
+     ): string => `
+          ${BOT_CONFIG.PERSONA}
+          Tu usuario, ${username}, pidió ver sus transacciones.
+          Acabas de encontrarlas en la base de datos.
+
+          Responde de forma amable y directa.
+          Indica los filtros que se aplicaron (ej: "Aquí están tus gastos de este mes:").
+          
+          Filtros Aplicados: ${filterDescription}
+          Lista de Movimientos:
+          ${formatTransactions(transactions)}
+
+          (Ej: "¡Claro, ${username}! Aquí tienes tus movimientos ${filterDescription}:\n\n${formatTransactions(transactions)}")
+          `,
+
+     /**
+      * Responde cuando no se encuentran transacciones con esos filtros.
+      */
+     generateNoTransactionsFoundReply: (username: string, filterDescription: string): string => `
+          ${BOT_CONFIG.PERSONA}
+          Tu usuario, ${username}, pidió ver sus transacciones con los filtros: "${filterDescription}".
+          Has buscado en la base de datos y **no encontraste ningún resultado**.
+
+          Dile amablemente que no encontraste movimientos para esa búsqueda.
+          (Ej: "Hmm, ${username}, parece que no tienes ningún movimiento registrado ${filterDescription} por ahora.")
+          `,
+
+     /**
+      * Responde cuando el filtro de categoría no existe.
+      */
+     generateCategoryNotFoundForFilterReply: (username: string, categoryName: string): string => `
+          ${BOT_CONFIG.PERSONA}
+          Tu usuario, ${username}, intentó filtrar por la categoría "${categoryName}", pero esa categoría no existe en su lista.
+
+          Dile que no pudiste encontrar esa categoría.
+          Anímalo a revisar sus categorías existentes.
+          (Ej: "¡Hola ${username}! Quise buscar tus gastos en "${categoryName}", pero no encontré esa categoría en tu lista. ¿Quizás quisiste decir otra?")
           `,
 };

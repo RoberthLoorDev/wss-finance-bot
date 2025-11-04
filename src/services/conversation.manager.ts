@@ -8,6 +8,7 @@ import { OnboardingHelpHandler } from "@/intents/onboarding-help.handler";
 import { CheckCategoriesHandler } from "@/intents/check-categories.handler";
 import { UpdateCategoryHandler } from "@/intents/update-category.handler";
 import { UpdateTransactionHandler } from "@/intents/update-transaction.handler";
+import { CheckTransactionsHandler } from "@/intents/check-transactions.handler";
 
 interface IHandler {
      execute(user: any, text: string, context: string): Promise<any>;
@@ -22,6 +23,7 @@ type HandledIntent =
      | "check_categories"
      | "update_transaction"
      | "create_transaction"
+     | "check_transactions"
      | "other";
 
 export class ConversationManager {
@@ -38,6 +40,7 @@ export class ConversationManager {
           update_category: new UpdateCategoryHandler(),
           update_transaction: new UpdateTransactionHandler(),
           create_transaction: new RegisterTransactionHandler(),
+          check_transactions: new CheckTransactionsHandler(),
      };
 
      async process(user: any, text: string, context: string) {
@@ -47,7 +50,7 @@ export class ConversationManager {
           if (intent === "register_transaction" && (!user.categories || user.categories.length === 0)) {
                const { items: allTypes } = await this.types.findAll({ page: 1, pageSize: 10 });
                const reply = await this.ai.generateCategoryOnboardingReply(user.name, allTypes);
-               return { reply }; // Devolvemos la respuesta de onboarding y terminamos.
+               return { reply }; // retorna inmediatamente si no hay categorías
           }
 
           let handlerToExecute: IHandler;
