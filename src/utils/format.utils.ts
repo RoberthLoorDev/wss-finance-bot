@@ -50,3 +50,24 @@ const getEmojiForType = (typeId: bigint | undefined | null): string => {
                return "⚪️";
      }
 };
+
+/**
+ * Utilidad para extraer JSON limpio de respuestas de IA
+ */
+export const extractJSON = <T = any>(response: string): T | null => {
+     try {
+          // Intenta parsear directamente
+          return JSON.parse(response.trim());
+     } catch {
+          // Busca JSON entre texto
+          const jsonMatch = response.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+               try {
+                    return JSON.parse(jsonMatch[0]);
+               } catch {
+                    return null;
+               }
+          }
+          return null;
+     }
+};
