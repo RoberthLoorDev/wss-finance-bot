@@ -10,11 +10,13 @@ export class TelegramService {
      private messages = new MessageService();
      private manager = new ConversationManager();
 
-     async sendMessage(chatId: number | string, text: string) {
+     // Enviar mensaje a un chat de Telegram usando parseo de Markdown o HTML
+     async sendMessage(chatId: number | string, text: string, parseMode: "Markdown" | "MarkdownV2" | "HTML" = "HTML") {
           try {
                await axios.post(`${ENV.TELEGRAM_API}/sendMessage`, {
                     chat_id: chatId,
                     text,
+                    parse_mode: parseMode,
                });
           } catch (error: any) {
                console.error("Error sending message:", error.response?.data || error.message);
